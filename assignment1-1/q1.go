@@ -1,8 +1,16 @@
+// Name: Sean Duncan
+// NetID: sdduncan
+// Description: The solution to Question 1 of Assignment 1-1. This file finds the most frequent words
+// above a certain character threshold within a file
 package cos418_hw1_1
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"regexp"
 	"sort"
+	"strings"
 )
 
 // Find the top K most common words in a text document.
@@ -15,10 +23,53 @@ import (
 // are removed, e.g. "don't" becomes "dont".
 // You should use `checkError` to handle potential errors.
 func topWords(path string, numWords int, charThreshold int) []WordCount {
-	// TODO: implement me
-	// HINT: You may find the `strings.Fields` and `strings.ToLower` functions helpful
-	// HINT: To keep only alphanumeric characters, use the regex "[^0-9a-zA-Z]+"
-	return nil
+	// Compile Regex
+	re, err := regexp.Compile(`[0-9a-zA-Z]+`)
+	checkError(err)
+
+	// Map words to wordcount
+	wordMap := make(map[string]WordCount)
+
+	// Open file check for err
+	file, err := os.Open(path)
+	defer file.Close()
+	checkError(err)
+
+	// wrap file in bufio scanner, facilitating reading file in line by line
+	// and ensuring full contents have been read
+	fileReader := bufio.NewScanner(file)
+	for fileReader.Scan() {
+		line := fileReader.Text()
+
+		line = strings.ToLower(line)
+		fields := strings.Fields(line)
+		for _, rawWord := range fields {
+			word := strings.Join(re.FindAllString(rawWord, len(rawWord)), "")
+			if len(word) < charThreshold {
+				continue
+			}
+
+			if _, containsWord := wordMap[word]; !containsWord {
+				wordMap[word] = WordCount{
+					Word:word,
+					Count:1,
+				}
+			} else {
+				wc := wordMap[word]
+				wc.Count++
+				wordMap[word] = wc
+			}
+		}
+	}
+
+	var wordCounts []WordCount
+	for _, key := range wordMap {
+		wordCounts = append(wordCounts, key)
+	}
+
+	// Sort and return numWords number of words
+	sortWordCounts(wordCounts)
+	return wordCounts[0:numWords]
 }
 
 // A struct that represents how many times a word is observed in a document

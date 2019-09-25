@@ -1,8 +1,13 @@
+// Name: Sean Duncan
+// NetID: sdduncan
+// Description: The solution to Question 2 of Assignment 1-1. This file sums the numbers in a
+// file concurrently
 package cos418_hw1_1
 
 import (
 	"bufio"
 	"io"
+	"os"
 	"strconv"
 )
 
@@ -10,8 +15,11 @@ import (
 // You should only output to `out` once.
 // Do NOT modify function signature.
 func sumWorker(nums chan int, out chan int) {
-	// TODO: implement me
-	// HINT: use for loop over `nums`
+	var sum int
+	for num := range nums {
+		sum += num
+	}
+	out <- sum
 }
 
 // Read integers from the file `fileName` and return sum of all values.
@@ -20,10 +28,39 @@ func sumWorker(nums chan int, out chan int) {
 // You should use `checkError` to handle potential errors.
 // Do NOT modify function signature.
 func sum(num int, fileName string) int {
-	// TODO: implement me
-	// HINT: use `readInts` and `sumWorkers`
-	// HINT: used buffered channels for splitting numbers between workers
-	return 0
+	file, err := os.Open(fileName)
+	defer file.Close()
+	checkError(err)
+
+	values, err := readInts(file)
+	checkError(err)
+
+	numChan := make(chan int, len(values))
+	outChan := make(chan int, num)
+	defer close(outChan)
+
+
+	// sync up goroutines via wait group. You are
+
+
+	// Spawn num goroutines and use a wait group to ensure
+	// all goroutines finish before taking the
+	for i := 0; i < num; i++ {
+		go sumWorker(numChan, outChan)
+	}
+
+	// Send all values to numChan and close when done
+	for _, value := range values {
+		numChan <- value
+	}
+	close(numChan)
+
+	var sum int
+	for i := 0; i < num; i++{
+		sum += <-outChan
+	}
+
+	return sum
 }
 
 // Read a list of integers separated by whitespace from `r`.
